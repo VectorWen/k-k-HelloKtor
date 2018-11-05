@@ -13,6 +13,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
+
 apply plugin: 'java'
 apply plugin: 'kotlin'
 apply plugin: 'application'
@@ -30,6 +31,38 @@ repositories {
     maven { url "https://dl.bintray.com/kotlin/ktor" }
     maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
 }
+
+
+task copyJars(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'docker/lib' // 目标位置
+}
+
+jar {
+    def cp = ''
+    def dir = new File("docker/lib")
+    dir.eachFile { name ->
+        cp += " lib/${name.name}"
+    }
+    cp = cp.trim()
+
+    manifest {
+        attributes 'Class-Path': cp
+        attributes 'Main-Class': 'com.vector.ktor.HelloKtorKt'
+    }
+
+    classifier = 'app'
+    excludes = ["*.jar"]
+    doLast {
+        def appName = "${rootProject.name}-${version}-app.jar"
+        copy {
+            from "build/libs/${appName}"
+            into "docker"
+            rename("$appName", "app.jar")
+        }
+    }
+}
+
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
